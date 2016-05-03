@@ -146,7 +146,6 @@ class ITKImageProcessingFilterTest
 	  image->FillBuffer(12);
 	  ImageType::IndexType index;
 	  index.Fill(0);
-	  //image->ShouldIReleaseData()
 	  float val=image->GetPixel(index);
 	  // Create converter
 	  typedef itk::ImageToDream3DDataFilter<PixelType, dimension> itkImageToDream3DDataFilterType;

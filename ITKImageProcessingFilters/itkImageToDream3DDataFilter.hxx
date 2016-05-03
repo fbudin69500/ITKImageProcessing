@@ -52,7 +52,6 @@ namespace itk
 	::Update()
 	{
 		m_DataContainer = DataContainer::NullPointer(); // In case of an error, we want to return the NULL pointer
-		//m_DataContainerArray->createNonPrereqDataContainer<AbstractFilter>(this, m_DataArrayPath.getDataContainerName());
 		ImagePointer inputPtr = dynamic_cast<ImageType*>(this->GetInput(0));
 		if (!inputPtr || !this->Check())
 		{
@@ -91,51 +90,12 @@ namespace itk
 		m_DataContainer->setGeometry(image);
 
 		//// // Create data array
-		//// UInt8ArrayType::Pointer data = UInt8ArrayType::NullPointer();
 		QVector<size_t> cDims(1, 0);
 		cDims[0] = 1;
-
-		/////* data = UInt8ArrayType::CreateArray(m_Dimensions.x*m_Dimensions.y*m_Dimensions.z, cDims, SIMPL::CellData::ImageData);
-		//// data->initializeWithValue(128);
 		AttributeMatrix::Pointer ma = m_DataContainer->createAndAddAttributeMatrix(tDims, m_DataArrayPath.getAttributeMatrixName(), SIMPL::AttributeMatrixType::Cell);
 		inputPtr->SetBufferedRegion(inputPtr->GetLargestPossibleRegion());
 		DataArray<PixelType>::Pointer data = DataArray<PixelType>::WrapPointer(inputPtr->GetBufferPointer(), numberOfTuples, cDims, m_DataArrayPath.getDataArrayName(), false);
-		//inputPtr->ReleaseData();
 		ma->addAttributeArray(m_DataArrayPath.getDataArrayName(), data);
-		//// Allocates memory only if this==NULL or this->preflight returns error code
-		////IDataArray::Pointer data;
-		//// Create an array but do not allocate memory
-		////data = UInt8ArrayType::CreateArray(tDims, cDims, getDataAttributeName(), false);
-
-		//// //UInt8ArrayType::Pointer attributeArray = UInt8ArrayType::CreateArray(tDims, cDims, getDataAttributeName(), true);
-		////if (data.get() != NULL)
-		////{
-		//// ma->createAndAddAttributeArray<UInt8ArrayType, AbstractFilter, unsigned char>(this, getDataAttributeName(), 0, cDims);
-		////}
-		////ma->createAndAddAttributeArray<UInt8ArrayType, AbstractFilter, unsigned char>(this, getDataAttributeName(), 0, cDims);
-		//// Allocates memory all the time
-		////UInt8ArrayType::Pointer data = ma->createNonPrereqArray<UInt8ArrayType, AbstractFilter, unsigned char>(this, getDataAttributeName(), 0, cDims);
-		//Int16ArrayType::Pointer data = Int16ArrayType::CreateArray(tDims, cDims, getDataAttributeName(), true);//UInt8ArrayType::
-		//ma->addAttributeArray(getDataAttributeName(), data);
-		//ma->getAttributeArray(getDataAttributeName());
-		//QString p = QString("ma, nb of tuples:%1").arg((qulonglong)(ma->getAttributeArray(getDataAttributeName())->getNumberOfTuples()));
-
-		//notifyWarningMessage(getHumanLabel(), p, 1);
-		//p = QString("data address first:%1").arg((qulonglong)(data->getPointer(0)));
-		//notifyWarningMessage(getHumanLabel(), p, 1);
-		//p = QString("data get:%1").arg((qulonglong)(data.get()));
-		//notifyWarningMessage(getHumanLabel(), p, 1);
-
-
-		//itk::ImageFileReader<ImageType>::Pointer reader = itk::ImageFileReader < ImageType >::New();
-		//reader->SetFileName(filename.toStdString());
-		////reader->Update();
-		//PixelType* outputData = static_cast<PixelType*>(data->getPointer(0));
-		//size_t num = data->getNumberOfTuples();
-		//reader->GetOutput()->GetPixelContainer()->SetImportPointer(outputData, num, false);
-		//reader->Update();
-		//ImageType::Pointer loadedimage = reader->GetOutput();
-
 		m_OutputUpdated.Modified();
 	}
 

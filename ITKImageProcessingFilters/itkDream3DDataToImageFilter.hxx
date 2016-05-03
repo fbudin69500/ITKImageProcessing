@@ -40,19 +40,19 @@ Dream3DDataToImageFilter< PixelType, VDimension >
 		itkExceptionMacro("DataContainer not set!");
 	}
 	IGeometry::Pointer geom = m_DataContainer->getGeometry();
-	//Verifies that data container geometry is ImageGeom
+	// Verifies that data container geometry is ImageGeom
 	QString geomTypeName = geom->getGeometryTypeAsString();
 	if (geomTypeName != "ImageGeometry")
 	{
 		itkExceptionMacro("DataContainer geometry is not ImageGeometry. It is " + geomTypeName.toStdString());
 	}
-	//Verifies that data container contains matrix array
+	// Verifies that data container contains matrix array
 	if (!m_DataContainer->doesAttributeMatrixExist(m_MatrixArrayName.c_str()))
 	{
 		itkExceptionMacro("Matrix array (" + m_MatrixArrayName + ") does not exist");
 	}
 	AttributeMatrix::Pointer ma = m_DataContainer->getAttributeMatrix(m_MatrixArrayName.c_str());
-	//Verifies that matrix array contains data array
+	// Verifies that matrix array contains data array
 	if (!ma->doesAttributeArrayExist(m_DataArrayName.c_str()))
 	{
 		itkExceptionMacro("Attribute array (" + m_DataArrayName + ") does not exist");
