@@ -118,11 +118,6 @@ class ITKImageProcessingFilterTest
 	  //Create input image
 	  const unsigned int dimension = 3;
 	  int tol = 1;
-	  //Test only works if image if of dimension 2 or 3
-	  if (dimension != 2 && dimension != 3)
-	  {
-		  TestFailed("Dimension must be 2 or 3.");
-	  }
 	  //////////////////////////////////////////////////
 	  typedef float PixelType;
 	  typedef itk::Image<PixelType, dimension> ImageType;

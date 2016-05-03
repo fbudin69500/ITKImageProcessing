@@ -51,22 +51,28 @@ namespace itk
 	ImageToDream3DDataFilter<PixelType, VDimension>
 	::Update()
 	{
+		//Test only works if image if of dimension 2 or 3
+		if (VDimension != 2 && VDimension != 3)
+		{
+			itkExceptionMacro("Dimension must be 2 or 3.");
+		}
 		m_DataContainer = DataContainer::NullPointer(); // In case of an error, we want to return the NULL pointer
 		ImagePointer inputPtr = dynamic_cast<ImageType*>(this->GetInput(0));
-		if (!inputPtr || !this->Check())
+		this->Check();
+		if (!inputPtr)
 		{
-			return;
+			itkExceptionMacro("Input image not set");
 		}
 		m_DataContainer = DataContainer::New(m_DataArrayPath.getDataContainerName());
 		if (!m_DataContainer)
 		{
-			return;
+			itkExceptionMacro("Could not create data container");
 		}
 		//// Create image geometry (data container)
 		ImageGeom::Pointer image = ImageGeom::CreateGeometry(SIMPL::Geometry::ImageGeometry);
 		if (!image)
 		{
-			return;
+			itkExceptionMacro("Could not create image geometry");
 		}
 		// Get Input image properties
 		ImageType::PointType origin = inputPtr->GetOrigin();
@@ -101,23 +107,22 @@ namespace itk
 
 	// Check that m_DataArrayPath has been initialized correctly
 	template<typename PixelType, unsigned int VDimension>
-	bool
+	void
 	ImageToDream3DDataFilter<PixelType, VDimension>
 	::Check()
 	{
 		if (m_DataArrayPath.getDataContainerName().contains('/'))
 		{
-			return false;
+			itkExceptionMacro("DataContainerName contains a '/'");
 		}
 		if (m_DataArrayPath.getAttributeMatrixName().contains('/'))
 		{
-			return false;
+			itkExceptionMacro("AttributeMatrixName contains a '/'");
 		}
 		if (m_DataArrayPath.getDataArrayName().contains('/'))
 		{
-			return false;
+			itkExceptionMacro("DataArrayName contains a '/'");
 		}
-		return true;
 	}
 
 	template<typename PixelType, unsigned int VDimension>

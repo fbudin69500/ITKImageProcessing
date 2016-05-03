@@ -27,7 +27,7 @@ namespace itk
 		void Update();
 		DataContainer::Pointer GetOutput();
 	protected:
-		bool Check();
+		void Check();
 		ImageToDream3DDataFilter();
 		virtual ~ImageToDream3DDataFilter();
 	private:
