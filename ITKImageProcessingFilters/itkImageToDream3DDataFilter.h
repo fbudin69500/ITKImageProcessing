@@ -28,10 +28,11 @@ namespace itk
 		itkGetMacro(DataArrayPath, DataArrayPath);
 		virtual void SetInput(const ImageType *image);
 		virtual void GenerateData() ITK_OVERRIDE;
+		virtual void GenerateOutputInformation() ITK_OVERRIDE;
 		DecoratorType* GetOutput();
 		ProcessObject::DataObjectPointer MakeOutput(ProcessObject::DataObjectPointerArraySizeType);
 	protected:
-		void ValidInputCheck();
+		virtual void VerifyPreconditions() ITK_OVERRIDE;
 		ImageToDream3DDataFilter();
 		virtual ~ImageToDream3DDataFilter();
 	private:

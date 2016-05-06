@@ -26,7 +26,7 @@ namespace itk
 	protected:
 		Dream3DDataToImageFilter();
 		virtual ~Dream3DDataToImageFilter();
-		void ValidInputCheck();
+		virtual void VerifyPreconditions() ITK_OVERRIDE;
 		virtual void GenerateOutputInformation() ITK_OVERRIDE;
 		virtual void GenerateData() ITK_OVERRIDE;
 
