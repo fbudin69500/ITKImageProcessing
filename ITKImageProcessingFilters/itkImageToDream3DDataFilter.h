@@ -3,7 +3,7 @@
 
 #include "itkImage.h"
 #include "itkProcessObject.h"
-
+#include "itkSimpleDataObjectDecorator.h"
 #include "SIMPLib/DataContainers/DataContainerArray.h"
 
 
@@ -14,28 +14,30 @@ namespace itk
 	{
 	public:
 		/** Standard class typedefs. */
-		typedef ImageToDream3DDataFilter                                Self;
-		typedef SmartPointer<Self>                                         Pointer;
-		typedef typename Image<PixelType, VDimension> ImageType;
-		typedef typename ImageType::Pointer ImagePointer;
-		typedef typename DataArray<PixelType> DataArrayPixelType;
+		typedef ImageToDream3DDataFilter                                    Self;
+		typedef ProcessObject                                               Superclass;
+		typedef SmartPointer<Self>                                          Pointer;
+		typedef typename Image<PixelType, VDimension>                       ImageType;
+		typedef typename ImageType::Pointer                                 ImagePointer;
+		typedef typename DataArray<PixelType>                               DataArrayPixelType;
+		typedef typename SimpleDataObjectDecorator<DataContainer::Pointer>  DecoratorType;
+		typedef DecoratorType::Pointer                                      DecoratorPointer;
 		/** Method for creation through the object factory. */
 		itkNewMacro(Self);
 		void SetDataArrayPath(DataArrayPath dataArray);
 		itkGetMacro(DataArrayPath, DataArrayPath);
 		virtual void SetInput(const ImageType *image);
-		void Update();
-		DataContainer::Pointer GetOutput();
+		virtual void GenerateData() ITK_OVERRIDE;
+		DecoratorType* GetOutput();
+		ProcessObject::DataObjectPointer MakeOutput(ProcessObject::DataObjectPointerArraySizeType);
 	protected:
-		void Check();
+		void ValidInputCheck();
 		ImageToDream3DDataFilter();
 		virtual ~ImageToDream3DDataFilter();
 	private:
 		ImageToDream3DDataFilter(const ImageToDream3DDataFilter&); // Copy Constructor Not Implemented
 		void operator=(const ImageToDream3DDataFilter&); // Operator '=' Not Implemented
-		DataContainer::Pointer m_DataContainer;
 		DataArrayPath m_DataArrayPath;
-		TimeStamp m_OutputUpdated;
 	};// end of class ImageToDream3DDataFilter
 } //end of itk namespace
 
