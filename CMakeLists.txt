@@ -36,6 +36,7 @@ if(DREAM3D_USE_ITK)
       ITKIONRRD
       ITKIOMeta
       ITKIOPNG
+      ITKIOTIFF
       ITKIONIFTI
       ITKIOGIPL
       ITKIOVTK
