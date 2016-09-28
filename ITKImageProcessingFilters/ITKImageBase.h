@@ -96,6 +96,26 @@ class ITKImageBase : public AbstractFilter
     */
     virtual void preflight();
 
+    /**
+     * @brief CastVec3ToStd Input type should be FloatVec3_t or IntVec3_t, Output
+       type should be std::vector<float> or std::vector<int>
+     */
+    template<typename InputType, typename OutputType>
+    OutputType CastVec3ToStd(const InputType &inputVector) const;
+
+    /**
+     * @brief StaticCast Performs a static cast on a value
+     */
+    template<typename InputType, typename OutputType>
+    OutputType StaticCastScalar(const InputType &val) const;
+
+    /**
+     * @brief CastStdToVec3 Input type should be std::vector<float> or std::vector<int>
+       and Output type should be FloatVec3_t or IntVec3_t
+     */
+    template<typename InputType, typename OutputType>
+    OutputType CastStdToVec3(const &InputType inputVector) const;
+
   signals:
     /**
      * @brief updateFilterParameters Emitted when the Filter requests all the latest Filter parameters

@@ -45,6 +45,48 @@ void ITKImageBase::initialize()
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
+template<typename InputType, typename OutputType>
+std::vector<OutputType> ITKImageBase::StaticCastVector(const std::vector<InputType> &inputVector) const
+{
+    std::vector<OutputType> outputVector(inputVector.size());
+    std::copy( inputVector.begin(), inputVector.end(), outputVector.begin() );
+    return outputVector;
+}
+
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+template<typename InputType, typename OutputType>
+OutputType ITKImageBase::StaticCastScalar(const InputType &val) const
+{
+    return static_cast<OutputType>(val);
+}
+
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+template<typename InputType, typename OutputType>
+OutputType ITKImageBase::CastStdToVec3(const &InputType inputVector) const
+{
+  OutputType outputVec3;
+  if(inputVector.size() > 0 )
+  {
+    outputVec3.x = static_cast<OutputType>(inputVector[0]);
+    if(inputVector.size() > 1 )
+    {
+      outputVec3.y = static_cast<OutputType>(inputVector[1]);
+      if(inputVector.size() > 2 )
+      {
+        outputVec3.z = static_cast<OutputType>(inputVector[2]);
+      }
+    }
+  }
+  return outputVec3;
+}
+
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
 void ITKImageBase::preflight()
 {
   // These are the REQUIRED lines of CODE to make sure the filter behaves correctly

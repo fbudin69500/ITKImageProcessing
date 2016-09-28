@@ -12,6 +12,9 @@
 #include "SIMPLib/SIMPLib.h"
 #include "SIMPLib/Common/SIMPLibSetGetMacros.h"
 
+//Auto includes
+${IncludeName}
+
 /**
  * @brief The ${FilterName} class. See [Filter documentation](@ref ${FilterName}) for details.
  */

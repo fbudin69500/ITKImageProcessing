@@ -20,9 +20,6 @@
 #include "ITKImageProcessing/ITKImageProcessingFilters/itkDream3DImage.h"
 #include "ITKImageProcessing/ITKImageProcessingFilters/Dream3DTemplateAliasMacro.h"
 
-//Auto includes
-${IncludeName}
-
 // Include the MOC generated file for this class
 #include "moc_${FilterName}.cpp"
 
@@ -30,8 +27,9 @@ ${IncludeName}
 //
 // -----------------------------------------------------------------------------
 ${FilterName}::${FilterName}() :
-  ITKImageBase()${InitializationParameters}
+  ITKImageBase()
 {
+${InitializationParameters}
   setupFilterParameters();
 }
 
