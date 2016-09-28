@@ -112,6 +112,25 @@ inputs={
          ]
        }
 
+Dream3DTypeToMacro={
+  'double':{'include':'SIMPLib/FilterParameters/DoubleFilterParameter.h', 'macro':'SIMPL_NEW_DOUBLE_FP'},
+  'float':{'include':'SIMPLib/FilterParameters/FloatFilterParameter.h','macro':'SIMPL_NEW_INTEGER_FP'},
+  'int':{'include':'SIMPLib/FilterParameters/IntFilterParameter.h','macro':'SIMPL_NEW_INTEGER_FP'},
+  'bool':{'include':'SIMPLib/FilterParameters/BooleanFilterParameter.h','macro':'SIMPL_NEW_BOOL_FP'}
+}
+
+ITKToDream3DType={
+  'double':'double',
+  'float':'float',
+  'int':'int',
+  'int32_t':'int',
+  'unsigned int':'double',
+  'uint64_t':'double',
+  'uint32_t':'double',
+  'uint8_t':'int',
+  'bool':'bool'
+}
+
 def ExtractDescritpion(data_json, fields, filter_description,verbose=False, not_implemented=False):
     # Print which fields are being processed
     if verbose:
@@ -228,43 +247,33 @@ def FilterFields(fields, descriptions):
                 filter_field=field['Filter']  # This field is expect to be a list that needs to be filtered
                 descriptions[ii][key] = [x for x in val if filter_field not in x]
 
+def CheckTypeSupport(filter_members):
+    for filter_member in filter_members:  # Expected to be a list
+        if filter_member['type'] not in ITKToDream3DType:
+            print("Type not supported: %s"%filter_member['type'])
+            print filter_member
+            return False
+    return True
+
 def GetDREAM3DParameters(filter_member):
-    parameter='    SIMPL_FILTER_PARAMETER('+filter_member['type']+', '+filter_member['name']+')\n'
-    parameter+='    Q_PROPERTY('+filter_member['type']+' '+filter_member['name']+' READ get'+filter_member['name']+' WRITE set'+filter_member['name']+')\n\n'
+    dream3D_type = ITKToDream3DType[filter_member['type']]
+    parameter='    SIMPL_FILTER_PARAMETER('+dream3D_type+', '+filter_member['name']+')\n'
+    parameter+='    Q_PROPERTY('+dream3D_type+' '+filter_member['name']+' READ get'+filter_member['name']+' WRITE set'+filter_member['name']+')\n\n'
     return parameter
 
 def GetDREAM3DSetupFilterParametersFromMembers(filter_member, filter_name):
-    error=False
-    include=""
-    setup=""
-    if filter_member['type'] == 'double':
-        include='SIMPLib/FilterParameters/DoubleFilterParameter.h'
-        setup='parameters.push_back(SIMPL_NEW_DOUBLE_FP("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
-    elif filter_member['type'] == 'float':
-        include='SIMPLib/FilterParameters/FloatFilterParameter.h'
-        setup='parameters.push_back(SIMPL_NEW_FLOAT_FP("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
-    elif filter_member['type'] == 'int':
-        include='SIMPLib/FilterParameters/IntFilterParameter.h'
-        setup='parameters.push_back(SIMPL_NEW_INTEGER_FP("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
-    elif filter_member['type'] == 'int32_t':
-        include='SIMPLib/FilterParameters/IntFilterParameter.h'
-        setup='parameters.push_back(SIMPL_NEW_INTEGER_FP("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
-    elif filter_member['type'] == 'unsigned int':
-        include='SIMPLib/FilterParameters/IntFilterParameter.h'
-        setup='parameters.push_back(SIMPL_NEW_INTEGER_FP("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
-    elif filter_member['type'] == 'uint64_t':
-        include='SIMPLib/FilterParameters/IntFilterParameter.h'
-        setup='parameters.push_back(SIMPL_NEW_INTEGER_FP("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
-    elif filter_member['type'] == 'uint8_t':
-        include='SIMPLib/FilterParameters/IntFilterParameter.h'
-        setup='parameters.push_back(SIMPL_NEW_INTEGER_FP("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
-    elif filter_member['type'] == 'bool':
-        include='SIMPLib/FilterParameters/BooleanFilterParameter.h'
-        setup='parameters.push_back(SIMPL_NEW_BOOL_FP("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
+    if filter_member['type'] in ITKToDream3DType.keys():
+        include=Dream3DTypeToMacro[ITKToDream3DType[filter_member['type']]]['include']
+        macro=Dream3DTypeToMacro[ITKToDream3DType[filter_member['type']]]['macro']
+        setup='parameters.push_back('+macro+'("'+filter_member['name']+'", '+filter_member['name']+', FilterParameter::Parameter, '+filter_name+'));\n'
+        limits=""
+        dream3D_type = ITKToDream3DType[filter_member['type']]
+        if dream3D_type != filter_member['type']:
+            limits='CheckIntegerEntry<'+filter_member['type']+','+dream3D_type+'>(m_'+filter_member['name']+', "'+filter_member['name']+'");\n'
+        return [include, setup, limits, False]
     else:
         print("Type not supported: %s"%filter_member['type'])
-        error=True
-    return [include, setup, error]
+        return ["", "", "", True]
 
 def GetDREAM3DReadFilterParameters(filter_member):
   return '  set'+filter_member['name']+'(reader->readValue("'+filter_member['name']+'", get'+filter_member['name']+'()));\n'
@@ -293,15 +302,25 @@ def ConfigureFiles(ext, template_directory, directory, DREAM3DFilter):
         for line in filter_file:
             f.write("%s" % line)
 
-def  InitializeParsingValues(DREAM3DFilter, filter_description):
+def ExpandFilterName(filter_name):
+  expanded_name=""
+  for x in filter_name:
+      if x.isupper():
+          expanded_name += ' '
+      expanded_name += x
+  return expanded_name
+
+def InitializeParsingValues(DREAM3DFilter, filter_description):
     DREAM3DFilter['RawFilterName']=filter_description['name']
     DREAM3DFilter['FilterName']=GetDREAM3DFilterName(filter_description['name'])
     DREAM3DFilter['FilterNameLowerCase']=DREAM3DFilter['FilterName'].lower()
+    DREAM3DFilter['FilterNameExpanded']='ITK '+ExpandFilterName(filter_description['name'])
     DREAM3DFilter['mdunderline']='='*len(DREAM3DFilter['FilterName'])
     DREAM3DFilter['Parameters']= ''
     DREAM3DFilter['SetupFilterParameters'] = ''
     DREAM3DFilter['ReadFilterParameters'] = ''
     DREAM3DFilter['InitializationParameters'] = ''
+    DREAM3DFilter['CheckIntegerEntry'] = ''
 
 
 def GetDREAM3DInitializationParameters(filter_member):
@@ -375,6 +394,9 @@ def main(argv=None):
         FilterFields(general, [filter_description])
         FilterFields(inputs, filter_inputs)
         FilterFields(members, filter_members)
+        # Check filter members type
+        if not CheckTypeSupport(filter_members):
+            continue
         # Create Filter content
         # Initialization of replacement strings
         DREAM3DFilter={}
@@ -384,10 +406,11 @@ def main(argv=None):
             # Append Parameters
             DREAM3DFilter['Parameters'] += GetDREAM3DParameters(filter_member)
             # SetupFilterParameters
-            [include, setup, error] = GetDREAM3DSetupFilterParametersFromMembers(filter_member, DREAM3DFilter['FilterName'])
+            [include, setup, limits, error] = GetDREAM3DSetupFilterParametersFromMembers(filter_member, DREAM3DFilter['FilterName'])
             if error:
                 continue
-            DREAM3DFilter['SetupFilterParameters'] += '  '+setup
+            DREAM3DFilter['SetupFilterParameters'] += '  '*bool(len(setup))+setup
+            DREAM3DFilter['CheckIntegerEntry'] += '  '*bool(len(limits))+limits
             include_list.append(include)
             # ReadFilterParameters
             DREAM3DFilter['ReadFilterParameters'] += GetDREAM3DReadFilterParameters(filter_member)

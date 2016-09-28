@@ -4,8 +4,8 @@
  * Your License or Copyright can go here
  */
 
-#ifndef _${FilterName}_h_
-#define _${FilterName}_h_
+#ifndef _ITKBinaryThresholdImage_h_
+#define _ITKBinaryThresholdImage_h_
 
 #include "ITKImageBase.h"
 
@@ -13,20 +13,32 @@
 #include "SIMPLib/Common/SIMPLibSetGetMacros.h"
 
 /**
- * @brief The ${FilterName} class. See [Filter documentation](@ref ${FilterName}) for details.
+ * @brief The ITKBinaryThresholdImage class. See [Filter documentation](@ref ITKBinaryThresholdImage) for details.
  */
-class ${FilterName} : public ITKImageBase
+class ITKBinaryThresholdImage : public ITKImageBase
 {
   Q_OBJECT
 
   public:
-    SIMPL_SHARED_POINTERS(${FilterName})
-    SIMPL_STATIC_NEW_MACRO(${FilterName})
-    SIMPL_TYPE_MACRO_SUPER(${FilterName}, AbstractFilter)
+    SIMPL_SHARED_POINTERS(ITKBinaryThresholdImage)
+    SIMPL_STATIC_NEW_MACRO(ITKBinaryThresholdImage)
+    SIMPL_TYPE_MACRO_SUPER(ITKBinaryThresholdImage, AbstractFilter)
 
-    virtual ~${FilterName}();
+    virtual ~ITKBinaryThresholdImage();
 
-${Parameters}
+    SIMPL_FILTER_PARAMETER(double, LowerThreshold)
+    Q_PROPERTY(double LowerThreshold READ getLowerThreshold WRITE setLowerThreshold)
+
+    SIMPL_FILTER_PARAMETER(double, UpperThreshold)
+    Q_PROPERTY(double UpperThreshold READ getUpperThreshold WRITE setUpperThreshold)
+
+    SIMPL_FILTER_PARAMETER(int, InsideValue)
+    Q_PROPERTY(int InsideValue READ getInsideValue WRITE setInsideValue)
+
+    SIMPL_FILTER_PARAMETER(int, OutsideValue)
+    Q_PROPERTY(int OutsideValue READ getOutsideValue WRITE setOutsideValue)
+
+
 
     /**
      * @brief newFilterInstance Reimplemented from @see AbstractFilter class
@@ -49,7 +61,7 @@ ${Parameters}
     virtual void readFilterParameters(AbstractFilterParametersReader* reader, int index);
 
   protected:
-    ${FilterName}();
+    ITKBinaryThresholdImage();
 
     /**
      * @brief dataCheckInternal overloads dataCheckInternal in ITKImageBase and calls templated dataCheck
@@ -87,8 +99,8 @@ ${Parameters}
 
   private:
 
-    ${FilterName}(const ${FilterName}&); // Copy Constructor Not Implemented
-    void operator=(const ${FilterName}&); // Operator '=' Not Implemented
+    ITKBinaryThresholdImage(const ITKBinaryThresholdImage&); // Copy Constructor Not Implemented
+    void operator=(const ITKBinaryThresholdImage&); // Operator '=' Not Implemented
 };
 
-#endif /* _${FilterName}_H_ */
+#endif /* _ITKBinaryThresholdImage_H_ */

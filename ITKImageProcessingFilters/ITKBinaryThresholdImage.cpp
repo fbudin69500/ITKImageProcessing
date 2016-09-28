@@ -4,7 +4,7 @@
  * Your License or Copyright can go here
  */
 
-#include "${FilterName}.h"
+#include "ITKBinaryThresholdImage.h"
 
 #include "SIMPLib/Common/Constants.h"
 #include "SIMPLib/FilterParameters/AbstractFilterParametersReader.h"
@@ -21,16 +21,23 @@
 #include "ITKImageProcessing/ITKImageProcessingFilters/Dream3DTemplateAliasMacro.h"
 
 //Auto includes
-${IncludeName}
+#include <SIMPLib/FilterParameters/DoubleFilterParameter.h>
+#include <SIMPLib/FilterParameters/IntFilterParameter.h>
+#include <itkBinaryThresholdImageFilter.h>
+
 
 // Include the MOC generated file for this class
-#include "moc_${FilterName}.cpp"
+#include "moc_ITKBinaryThresholdImage.cpp"
 
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-${FilterName}::${FilterName}() :
-  ITKImageBase()${InitializationParameters}
+ITKBinaryThresholdImage::ITKBinaryThresholdImage() :
+  ITKImageBase(),
+m_LowerThreshold(0.0),
+m_UpperThreshold(255.0),
+m_InsideValue(1u),
+m_OutsideValue(0u)
 {
   setupFilterParameters();
 }
@@ -38,31 +45,35 @@ ${FilterName}::${FilterName}() :
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-${FilterName}::~${FilterName}()
+ITKBinaryThresholdImage::~ITKBinaryThresholdImage()
 {
 }
 
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-void ${FilterName}::setupFilterParameters()
+void ITKBinaryThresholdImage::setupFilterParameters()
 {
   FilterParameterVector parameters;
 
-${SetupFilterParameters}
+  parameters.push_back(SIMPL_NEW_DOUBLE_FP("LowerThreshold", LowerThreshold, FilterParameter::Parameter, ITKBinaryThresholdImage));
+  parameters.push_back(SIMPL_NEW_DOUBLE_FP("UpperThreshold", UpperThreshold, FilterParameter::Parameter, ITKBinaryThresholdImage));
+  parameters.push_back(SIMPL_NEW_INTEGER_FP("InsideValue", InsideValue, FilterParameter::Parameter, ITKBinaryThresholdImage));
+  parameters.push_back(SIMPL_NEW_INTEGER_FP("OutsideValue", OutsideValue, FilterParameter::Parameter, ITKBinaryThresholdImage));
+
 
   QStringList linkedProps;
   linkedProps << "NewCellArrayName";
-  parameters.push_back(SIMPL_NEW_LINKED_BOOL_FP("Save as New Array", SaveAsNewArray, FilterParameter::Parameter, ${FilterName}, linkedProps));
+  parameters.push_back(SIMPL_NEW_LINKED_BOOL_FP("Save as New Array", SaveAsNewArray, FilterParameter::Parameter, ITKBinaryThresholdImage, linkedProps));
   parameters.push_back(SeparatorFilterParameter::New("Cell Data", FilterParameter::RequiredArray));
   {
     DataArraySelectionFilterParameter::RequirementType req =
       DataArraySelectionFilterParameter::CreateRequirement(SIMPL::Defaults::AnyPrimitive, SIMPL::Defaults::AnyComponentSize,
       SIMPL::AttributeMatrixType::Cell, SIMPL::GeometryType::ImageGeometry);
-    parameters.push_back(SIMPL_NEW_DA_SELECTION_FP("Attribute Array to filter", SelectedCellArrayPath, FilterParameter::RequiredArray, ${FilterName}, req));
+    parameters.push_back(SIMPL_NEW_DA_SELECTION_FP("Attribute Array to filter", SelectedCellArrayPath, FilterParameter::RequiredArray, ITKBinaryThresholdImage, req));
   }
   parameters.push_back(SeparatorFilterParameter::New("Cell Data", FilterParameter::CreatedArray));
-  parameters.push_back(SIMPL_NEW_STRING_FP("Filtered Array", NewCellArrayName, FilterParameter::CreatedArray, ${FilterName}));
+  parameters.push_back(SIMPL_NEW_STRING_FP("Filtered Array", NewCellArrayName, FilterParameter::CreatedArray, ITKBinaryThresholdImage));
 
   setFilterParameters(parameters);
 }
@@ -70,13 +81,17 @@ ${SetupFilterParameters}
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-void ${FilterName}::readFilterParameters(AbstractFilterParametersReader* reader, int index)
+void ITKBinaryThresholdImage::readFilterParameters(AbstractFilterParametersReader* reader, int index)
 {
   reader->openFilterGroup(this, index);
   setSelectedCellArrayPath( reader->readDataArrayPath( "SelectedCellArrayPath", getSelectedCellArrayPath() ) );
   setNewCellArrayName( reader->readString( "NewCellArrayName", getNewCellArrayName() ) );
   setSaveAsNewArray( reader->readValue( "SaveAsNewArray", getSaveAsNewArray() ) );
-${ReadFilterParameters}
+  setLowerThreshold(reader->readValue("LowerThreshold", getLowerThreshold()));
+  setUpperThreshold(reader->readValue("UpperThreshold", getUpperThreshold()));
+  setInsideValue(reader->readValue("InsideValue", getInsideValue()));
+  setOutsideValue(reader->readValue("OutsideValue", getOutsideValue()));
+
   reader->closeFilterGroup();
 }
 
@@ -85,7 +100,7 @@ ${ReadFilterParameters}
 //
 // -----------------------------------------------------------------------------
 template<typename VarType, typename SubsType>
-void ${FilterName}::CheckIntegerEntry(SubsType value, QString name)
+void ITKBinaryThresholdImage::CheckIntegerEntry(SubsType value, QString name)
 {
   if (value < static_cast<SubsType>(std::numeric_limits<VarType>::lowest())
      || value > static_cast<SubsType>(std::numeric_limits<VarType>::max())
@@ -105,10 +120,12 @@ void ${FilterName}::CheckIntegerEntry(SubsType value, QString name)
 //
 // -----------------------------------------------------------------------------
 template<typename PixelType, unsigned int Dimension>
-void ${FilterName}::dataCheck()
+void ITKBinaryThresholdImage::dataCheck()
 {
   // Check consistency of parameters
-${CheckIntegerEntry}
+  CheckIntegerEntry<uint8_t,int>(m_InsideValue, "InsideValue");
+  CheckIntegerEntry<uint8_t,int>(m_OutsideValue, "OutsideValue");
+
   setErrorCondition(0);
   ITKImageBase::dataCheck<PixelType, Dimension>();
 }
@@ -116,7 +133,7 @@ ${CheckIntegerEntry}
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-void ${FilterName}::dataCheckInternal()
+void ITKBinaryThresholdImage::dataCheckInternal()
 {
   Dream3DArraySwitchMacro(this->dataCheck, getSelectedCellArrayPath(), -4);// Run our DataCheck to make sure everthing is setup correctly
 }
@@ -126,17 +143,24 @@ void ${FilterName}::dataCheckInternal()
 // -----------------------------------------------------------------------------
 
 template<typename PixelType, unsigned int Dimension>
-void ${FilterName}::filter()
+void ITKBinaryThresholdImage::filter()
 {
   typedef itk::Dream3DImage<PixelType, Dimension> ImageType;
   //define filter
-${Filter}
+  typedef itk::BinaryThresholdImageFilter<ImageType, ImageType> FilterType;
+  typename FilterType::Pointer filter = FilterType::New();
+  filter->SetLowerThreshold(static_cast<double>(m_LowerThreshold));
+  filter->SetUpperThreshold(static_cast<double>(m_UpperThreshold));
+  filter->SetInsideValue(static_cast<uint8_t>(m_InsideValue));
+  filter->SetOutsideValue(static_cast<uint8_t>(m_OutsideValue));
+  this->ITKImageBase::filter<PixelType, Dimension, FilterType>(filter);
+
 }
 
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-void ${FilterName}::filterInternal()
+void ITKBinaryThresholdImage::filterInternal()
 {
   Dream3DArraySwitchMacro(this->filter, getSelectedCellArrayPath(), -4);// Run filter
 }
@@ -144,9 +168,9 @@ void ${FilterName}::filterInternal()
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-AbstractFilter::Pointer ${FilterName}::newFilterInstance(bool copyFilterParameters)
+AbstractFilter::Pointer ITKBinaryThresholdImage::newFilterInstance(bool copyFilterParameters)
 {
-  ${FilterName}::Pointer filter = ${FilterName}::New();
+  ITKBinaryThresholdImage::Pointer filter = ITKBinaryThresholdImage::New();
   if(true == copyFilterParameters)
   {
     copyFilterParameterInstanceVariables(filter.get());
@@ -157,6 +181,6 @@ AbstractFilter::Pointer ${FilterName}::newFilterInstance(bool copyFilterParamete
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-const QString ${FilterName}::getHumanLabel()
-{ return "[ITK] ${FilterNameExpanded} (KW)"; }
+const QString ITKBinaryThresholdImage::getHumanLabel()
+{ return "[ITK] ITK  Binary Threshold Image Filter (KW)"; }
 
