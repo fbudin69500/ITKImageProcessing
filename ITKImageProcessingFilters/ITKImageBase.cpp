@@ -46,17 +46,6 @@ void ITKImageBase::initialize()
 //
 // -----------------------------------------------------------------------------
 template<typename InputType, typename OutputType>
-std::vector<OutputType> ITKImageBase::StaticCastVector(const std::vector<InputType> &inputVector) const
-{
-    std::vector<OutputType> outputVector(inputVector.size());
-    std::copy( inputVector.begin(), inputVector.end(), outputVector.begin() );
-    return outputVector;
-}
-
-// -----------------------------------------------------------------------------
-//
-// -----------------------------------------------------------------------------
-template<typename InputType, typename OutputType>
 OutputType ITKImageBase::StaticCastScalar(const InputType &val) const
 {
     return static_cast<OutputType>(val);
@@ -65,19 +54,42 @@ OutputType ITKImageBase::StaticCastScalar(const InputType &val) const
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-template<typename InputType, typename OutputType>
-OutputType ITKImageBase::CastStdToVec3(const &InputType inputVector) const
+
+template<typename InputType, typename OutputType, typename ComponentType>
+OutputType ITKImageBase::CastVec3ToITK(const InputType &inputVec3, unsigned int dimension) const
+{
+  OutputType output;
+  if( dimension > 0 )
+  {
+    output[0] = static_cast<ComponentType>(inputVec3.x);
+    if( dimension > 1 )
+    {
+      output[1] = static_cast<ComponentType>(inputVec3.y);
+      if( dimension > 2 )
+      {
+        output[2] = static_cast<ComponentType>(inputVec3.z);
+      }
+    }
+  }
+  return output;
+}
+
+// -----------------------------------------------------------------------------
+//
+// -----------------------------------------------------------------------------
+template<typename InputType, typename OutputType, typename ComponentType>
+OutputType ITKImageBase::CastStdToVec3(const InputType &inputVector) const
 {
   OutputType outputVec3;
   if(inputVector.size() > 0 )
   {
-    outputVec3.x = static_cast<OutputType>(inputVector[0]);
+    outputVec3.x = static_cast<ComponentType>(inputVector[0]);
     if(inputVector.size() > 1 )
     {
-      outputVec3.y = static_cast<OutputType>(inputVector[1]);
+      outputVec3.y = static_cast<ComponentType>(inputVector[1]);
       if(inputVector.size() > 2 )
       {
-        outputVec3.z = static_cast<OutputType>(inputVector[2]);
+        outputVec3.z = static_cast<ComponentType>(inputVector[2]);
       }
     }
   }

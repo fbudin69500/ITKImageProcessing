@@ -66,18 +66,6 @@ ${Parameters}
     void dataCheck();
 
     /**
-    * @brief CheckIntegerEntry: Input types can only be of certain types:
-      -float
-      -double
-      -bool
-      -int
-      For the other type, we have to use one of this primitive type, and verify that the
-      value corresponds to what is expected.
-    */
-    template<typename VarType, typename SubsType>
-    void CheckIntegerEntry(SubsType value, QString name);
-
-    /**
     * @brief filterInternal overloads filterInternal in ITKImageBase and calls templated filter
     */
     void virtual filterInternal() override;

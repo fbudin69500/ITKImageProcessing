@@ -97,11 +97,11 @@ class ITKImageBase : public AbstractFilter
     virtual void preflight();
 
     /**
-     * @brief CastVec3ToStd Input type should be FloatVec3_t or IntVec3_t, Output
-       type should be std::vector<float> or std::vector<int>
+     * @brief CastVec3ToITK Input type should be FloatVec3_t or IntVec3_t, Output
+       type should be some kind of ITK "array" (itk::Size, itk::Index,...)
      */
-    template<typename InputType, typename OutputType>
-    OutputType CastVec3ToStd(const InputType &inputVector) const;
+    template<typename InputType, typename OutputType, typename ComponentType>
+    OutputType CastVec3ToITK(const InputType &inputVec3, unsigned int dimension) const;
 
     /**
      * @brief StaticCast Performs a static cast on a value
@@ -113,8 +113,8 @@ class ITKImageBase : public AbstractFilter
      * @brief CastStdToVec3 Input type should be std::vector<float> or std::vector<int>
        and Output type should be FloatVec3_t or IntVec3_t
      */
-    template<typename InputType, typename OutputType>
-    OutputType CastStdToVec3(const &InputType inputVector) const;
+    template<typename InputType, typename OutputType, typename ComponentType>
+    OutputType CastStdToVec3(const InputType &inputVector) const;
 
   signals:
     /**
@@ -248,6 +248,63 @@ class ITKImageBase : public AbstractFilter
     notifyStatusMessage(getHumanLabel(), "Complete");
 
 }
+
+
+    /**
+    * @brief CheckIntegerEntry: Input types can only be of certain types (float, double, bool, int).
+      For the other type, we have to use one of this primitive type, and verify that the
+      value corresponds to what is expected.
+      The 3rd parameter, 'bool' is given to match the definition of CheckVectorEntry. This allows
+      to use a dictionary in Python to choose between the 2 functions.
+    */
+    template<typename VarType, typename SubsType>
+    void CheckIntegerEntry(SubsType value, QString name, bool)
+    {
+      SubsType lowest = static_cast<SubsType>(std::numeric_limits<VarType>::lowest());
+      SubsType max = static_cast<SubsType>(std::numeric_limits<VarType>::max());
+      if (value < lowest
+       || value > max
+       || value != floor(value)
+         )
+      {
+        setErrorCondition(-1);
+        QString errorMessage = name + QString(
+          " must be greater or equal than %1 and lesser or equal than %2 and an integer");
+        notifyErrorMessage(getHumanLabel(), errorMessage.arg(lowest).arg(max)
+                                                             , getErrorCondition()
+                                                             );
+      }
+    }
+
+    /**
+    * @brief CheckVectorEntry: Vector input types can only be of certain types (float or int).
+      For the other type, we have to use one of this primitive type, and verify that the
+      value corresponds to what is expected.
+    */
+    template<typename VarType, typename SubsType>
+    void CheckVectorEntry(SubsType value, QString name, bool integer)
+    {
+      float lowest = static_cast<float>(std::numeric_limits<VarType>::lowest());
+      float max = static_cast<float>(std::numeric_limits<VarType>::max());
+      if (value.x < lowest || value.x > max
+         || (integer && value.x != floor(value.x))
+         || value.y < lowest || value.y > max
+         || (integer && value.y != floor(value.y))
+         || value.z < lowest || value.z > max
+         || (integer && value.z != floor(value.z))
+         )
+      {
+        setErrorCondition(-1);
+        QString errorMessage = name + QString(
+          " values must be greater or equal than %1 and lesser or equal than %2");
+        if(integer)
+        {
+          errorMessage += QString(" and integers");
+        }
+        notifyErrorMessage(getHumanLabel(), errorMessage.arg(lowest).arg(max),
+                           getErrorCondition() );
+      }
+    }
 
     /**
     * @brief Applies the filter

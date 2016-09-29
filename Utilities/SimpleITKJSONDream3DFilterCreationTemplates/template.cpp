@@ -78,27 +78,6 @@ ${ReadFilterParameters}
   reader->closeFilterGroup();
 }
 
-
-// -----------------------------------------------------------------------------
-//
-// -----------------------------------------------------------------------------
-template<typename VarType, typename SubsType>
-void ${FilterName}::CheckIntegerEntry(SubsType value, QString name)
-{
-  if (value < static_cast<SubsType>(std::numeric_limits<VarType>::lowest())
-     || value > static_cast<SubsType>(std::numeric_limits<VarType>::max())
-     || value != floor(value))
-  {
-    setErrorCondition(-1);
-    QString errorMessage = name + QString(" must be greater or equal than %1 and lesser or equal than %2");
-    notifyErrorMessage(getHumanLabel(), errorMessage.arg(
-        std::numeric_limits<VarType>::lowest()).arg(std::numeric_limits<VarType>::max())
-                                                         , getErrorCondition()
-                                                         );
-    return;
-  }
-}
-
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
