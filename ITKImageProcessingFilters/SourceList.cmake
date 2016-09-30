@@ -18,7 +18,7 @@ set(_PublicFilters
   ITKImageWriter
   ITKGaussianBlur
   ITKBinaryThreshold
-  ITKMeanImage
+  ITKMedianImage
 )
 
 

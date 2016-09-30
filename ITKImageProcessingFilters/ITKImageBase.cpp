@@ -45,60 +45,6 @@ void ITKImageBase::initialize()
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
-template<typename InputType, typename OutputType>
-OutputType ITKImageBase::StaticCastScalar(const InputType &val) const
-{
-    return static_cast<OutputType>(val);
-}
-
-// -----------------------------------------------------------------------------
-//
-// -----------------------------------------------------------------------------
-
-template<typename InputType, typename OutputType, typename ComponentType>
-OutputType ITKImageBase::CastVec3ToITK(const InputType &inputVec3, unsigned int dimension) const
-{
-  OutputType output;
-  if( dimension > 0 )
-  {
-    output[0] = static_cast<ComponentType>(inputVec3.x);
-    if( dimension > 1 )
-    {
-      output[1] = static_cast<ComponentType>(inputVec3.y);
-      if( dimension > 2 )
-      {
-        output[2] = static_cast<ComponentType>(inputVec3.z);
-      }
-    }
-  }
-  return output;
-}
-
-// -----------------------------------------------------------------------------
-//
-// -----------------------------------------------------------------------------
-template<typename InputType, typename OutputType, typename ComponentType>
-OutputType ITKImageBase::CastStdToVec3(const InputType &inputVector) const
-{
-  OutputType outputVec3;
-  if(inputVector.size() > 0 )
-  {
-    outputVec3.x = static_cast<ComponentType>(inputVector[0]);
-    if(inputVector.size() > 1 )
-    {
-      outputVec3.y = static_cast<ComponentType>(inputVector[1]);
-      if(inputVector.size() > 2 )
-      {
-        outputVec3.z = static_cast<ComponentType>(inputVector[2]);
-      }
-    }
-  }
-  return outputVec3;
-}
-
-// -----------------------------------------------------------------------------
-//
-// -----------------------------------------------------------------------------
 void ITKImageBase::preflight()
 {
   // These are the REQUIRED lines of CODE to make sure the filter behaves correctly
