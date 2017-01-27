@@ -95,6 +95,12 @@ class ITKMaskImage : public ITKImageBase
     template<typename InputImageType, typename OutputImageType, unsigned int Dimension>
     void filter();
 
+    /**
+    * @brief Converts data container MarkerCellArrayPath to uint16
+    */
+    template<typename InputPixelType, typename OutputPixelType, unsigned int Dimension>
+    void convertDataContainerType();
+
   private:
 
     ITKMaskImage(const ITKMaskImage&); // Copy Constructor Not Implemented

@@ -20,8 +20,11 @@ int TestITKMaskImage2dTest()
 {
     QString input_filename = UnitTest::DataDir + QString("/Data/JSONFilters/Input/STAPLE1.png");
     DataArrayPath input_path("TestContainer", "TestAttributeMatrixName", "TestAttributeArrayName");
+    QString mask_filename = UnitTest::DataDir + QString("/Data/JSONFilters/Input/STAPLE2.png");
+    DataArrayPath mask_path("MaskContainer", "MaskAttributeMatrixName", "MaskAttributeArrayName");
     DataContainerArray::Pointer containerArray = DataContainerArray::New();
     this->ReadImage(input_filename, containerArray, input_path);
+    this->ReadImage(mask_filename, containerArray, mask_path);
     QString filtName = "ITKMaskImage";
     FilterManager* fm = FilterManager::Instance();
     IFilterFactory::Pointer filterFactory = fm->getFactoryForFilter(filtName);
@@ -31,6 +34,9 @@ int TestITKMaskImage2dTest()
     bool propWasSet;
     var.setValue(input_path);
     propWasSet = filter->setProperty("SelectedCellArrayPath", var);
+    DREAM3D_REQUIRE_EQUAL(propWasSet, true);
+    var.setValue(mask_path);
+    propWasSet = filter->setProperty("MaskCellArrayPath", var);
     DREAM3D_REQUIRE_EQUAL(propWasSet, true);
     var.setValue(false);
     propWasSet = filter->setProperty("SaveAsNewArray", var);
@@ -50,8 +56,11 @@ int TestITKMaskImagecthead1Test()
 {
     QString input_filename = UnitTest::DataDir + QString("/Data/JSONFilters/Input/cthead1-Float.mha");
     DataArrayPath input_path("TestContainer", "TestAttributeMatrixName", "TestAttributeArrayName");
+    QString mask_filename = UnitTest::DataDir + QString("/Data/JSONFilters/Input/cthead1-mask.png");
+    DataArrayPath mask_path("MaskContainer", "MaskAttributeMatrixName", "MaskAttributeArrayName");
     DataContainerArray::Pointer containerArray = DataContainerArray::New();
     this->ReadImage(input_filename, containerArray, input_path);
+    this->ReadImage(mask_filename, containerArray, mask_path);
     QString filtName = "ITKMaskImage";
     FilterManager* fm = FilterManager::Instance();
     IFilterFactory::Pointer filterFactory = fm->getFactoryForFilter(filtName);
@@ -61,6 +70,9 @@ int TestITKMaskImagecthead1Test()
     bool propWasSet;
     var.setValue(input_path);
     propWasSet = filter->setProperty("SelectedCellArrayPath", var);
+    DREAM3D_REQUIRE_EQUAL(propWasSet, true);
+    var.setValue(mask_path);
+    propWasSet = filter->setProperty("MaskCellArrayPath", var);
     DREAM3D_REQUIRE_EQUAL(propWasSet, true);
     var.setValue(false);
     propWasSet = filter->setProperty("SaveAsNewArray", var);
@@ -80,8 +92,11 @@ int TestITKMaskImagergbTest()
 {
     QString input_filename = UnitTest::DataDir + QString("/Data/JSONFilters/Input/VM1111Shrink-RGB.png");
     DataArrayPath input_path("TestContainer", "TestAttributeMatrixName", "TestAttributeArrayName");
+    QString mask_filename = UnitTest::DataDir + QString("/Data/JSONFilters/Input/VM1111Shrink-mask.png");
+    DataArrayPath mask_path("MaskContainer", "MaskAttributeMatrixName", "MaskAttributeArrayName");
     DataContainerArray::Pointer containerArray = DataContainerArray::New();
     this->ReadImage(input_filename, containerArray, input_path);
+    this->ReadImage(mask_filename, containerArray, mask_path);
     QString filtName = "ITKMaskImage";
     FilterManager* fm = FilterManager::Instance();
     IFilterFactory::Pointer filterFactory = fm->getFactoryForFilter(filtName);
@@ -91,6 +106,9 @@ int TestITKMaskImagergbTest()
     bool propWasSet;
     var.setValue(input_path);
     propWasSet = filter->setProperty("SelectedCellArrayPath", var);
+    DREAM3D_REQUIRE_EQUAL(propWasSet, true);
+    var.setValue(mask_path);
+    propWasSet = filter->setProperty("MaskCellArrayPath", var);
     DREAM3D_REQUIRE_EQUAL(propWasSet, true);
     var.setValue(false);
     propWasSet = filter->setProperty("SaveAsNewArray", var);

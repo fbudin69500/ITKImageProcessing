@@ -15,13 +15,32 @@
 
 #include "SIMPLib/Geometry/ImageGeom.h"
 
-
-
+#define DREAM3D_USE_Vector 1
+#define DREAM3D_USE_RGBA   1
 #include "ITKImageProcessing/ITKImageProcessingFilters/itkDream3DImage.h"
 #include "ITKImageProcessing/ITKImageProcessingFilters/Dream3DTemplateAliasMacro.h"
 
 // Include the MOC generated file for this class
 #include "moc_ITKMaskImage.cpp"
+
+template<class PixelType>
+struct MaskOutsideValue
+{
+static void Value(double value, PixelType &pixel)
+{
+  pixel = static_cast<PixelType>( value );
+}
+};
+
+template<class PixelType >
+struct MaskOutsideValue<itk::RGBAPixel<PixelType> >
+{
+static void Value(double value, itk::RGBAPixel<PixelType> &pixel)
+{
+  pixel = static_cast<itk::RGBAPixel<PixelType> >( value );
+  pixel.SetAlpha(0);
+}
+};
 
 // -----------------------------------------------------------------------------
 //
@@ -60,7 +79,7 @@ void ITKMaskImage::setupFilterParameters()
       DataArraySelectionFilterParameter::CreateRequirement(SIMPL::Defaults::AnyPrimitive, SIMPL::Defaults::AnyComponentSize,
       AttributeMatrix::Type::Cell, IGeometry::Type::Image);
     parameters.push_back(SIMPL_NEW_DA_SELECTION_FP("Attribute Array to filter", SelectedCellArrayPath, FilterParameter::RequiredArray, ITKMaskImage, req));
-      parameters.push_back(SIMPL_NEW_DA_SELECTION_FP("Mask Array", MarkerCellArrayPath, FilterParameter::RequiredArray, ITKMorphologicalWatershedFromMarkersImage, req));
+      parameters.push_back(SIMPL_NEW_DA_SELECTION_FP("Mask Array", MaskCellArrayPath, FilterParameter::RequiredArray, ITKMaskImage, req));
   }
   parameters.push_back(SeparatorFilterParameter::New("Cell Data", FilterParameter::CreatedArray));
   parameters.push_back(SIMPL_NEW_STRING_FP("Filtered Array", NewCellArrayName, FilterParameter::CreatedArray, ITKMaskImage));
@@ -75,7 +94,7 @@ void ITKMaskImage::readFilterParameters(AbstractFilterParametersReader* reader, 
 {
   reader->openFilterGroup(this, index);
   setSelectedCellArrayPath( reader->readDataArrayPath( "SelectedCellArrayPath", getSelectedCellArrayPath() ) );
-  setSelectedCellArrayPath( reader->readDataArrayPath( "MaskCellArrayPath", getMarkerCellArrayPath() ) );
+  setSelectedCellArrayPath( reader->readDataArrayPath( "MaskCellArrayPath", getMaskCellArrayPath() ) );
   setNewCellArrayName( reader->readString( "NewCellArrayName", getNewCellArrayName() ) );
   setSaveAsNewArray( reader->readValue( "SaveAsNewArray", getSaveAsNewArray() ) );
   setOutsideValue(reader->readValue("OutsideValue", getOutsideValue()));
@@ -167,18 +186,19 @@ template<typename InputPixelType, typename OutputPixelType, unsigned int Dimensi
 void ITKMaskImage::filter()
 {
   typedef itk::Dream3DImage<InputPixelType, Dimension> InputImageType;
+  typedef itk::Dream3DImage<uint64_t, Dimension> MaskImageType;
   typedef itk::Dream3DImage<OutputPixelType, Dimension> OutputImageType;
   //define filter
-  typedef  FilterType;
+  typedef  itk::MaskImageFilter< InputImageType, MaskImageType, OutputImageType > FilterType;
   typename FilterType::Pointer filter = FilterType::New();
   // Set mask image.
   try
   {
-    DataArrayPath dap = getMarkerCellArrayPath();
-    DataContainer::Pointer dcMarker = getMarkerContainerArray()->getDataContainer(dap.getDataContainerName());
+    DataArrayPath dap = getMaskCellArrayPath();
+    DataContainer::Pointer dcMask = getMaskContainerArray()->getDataContainer(dap.getDataContainerName());
     typedef itk::InPlaceDream3DDataToImageFilter<uint64_t, Dimension> toITKType;
     typename toITKType::Pointer toITK = toITKType::New();
-    toITK->SetInput(dcMarker);
+    toITK->SetInput(dcMask);
     toITK->SetInPlace(true);
     toITK->SetAttributeMatrixArrayName(dap.getAttributeMatrixName().toStdString());
     toITK->SetDataArrayName(dap.getDataArrayName().toStdString());
@@ -193,8 +213,15 @@ void ITKMaskImage::filter()
     return;
   }
   typename OutputImageType::PixelType v;
-  NumericTraits<typename OutputImageType::PixelType>::SetLength( v, GetComponentsDimensions(InputPixelType) );
-  v = static_cast<OutputPixelType>( m_OutsideValue );
+  size_t NumberOfComponents = 1;
+  QVector<size_t> cDims = ITKDream3DHelper::GetComponentsDimensions<InputPixelType>();
+  for( int ii = 0 ; ii < cDims.size() ; ii++)
+  {
+    NumberOfComponents *= cDims[ii];
+  }
+  //itk::NumericTraits<typename OutputImageType::PixelType>::SetLength( v, NumberOfComponents );
+  MaskOutsideValue<typename OutputImageType::PixelType>::Value(m_OutsideValue, v);
+  //v = static_cast<OutputPixelType>( m_OutsideValue );
   filter->SetOutsideValue( v );
   this->ITKImageBase::filter<InputPixelType, OutputPixelType, Dimension, FilterType>(filter);
 }
