@@ -4,6 +4,34 @@
 This script reads a directory containing JSON files that describe
 ITK filters and creates a Dream3D filter for each filter based on
 the information found in the JSON file.
+
+This script:
+1) Checks content of the JSON file
+2) Convert JSON information into C++
+3) Uses defined variables to configure template files
+
+1) Python dictionaries are used to describe the information that is
+expected to be found in the JSON file. Some information is required
+in the JSON file while some is optional (See dictionaries definition below).
+
+2) Information found in the JSON file is used to set some python variables.
+
+3) Python variables are used to configure template files (one header file,
+one source file, one test file, one documentation file). Multiple template
+files are available (in Utilities/SimpleITKJSONDream3DFilterCreationTemplates)
+and are selected based on the template_code_filename and template_test_filename
+keywords that are found in the JSON file.
+
+
+Generated C++ code can be modified if necessary (e.g. some keywords
+are not handled by this script) or used as is. Generated filter
+names should be added to ITKImageProcessingFilters/SourceList.cmake
+and Test/CMakeLists.txt .
+
+ITK source code directory is required to find filter module name. Filter
+name is extracted from the ITK header file and used as the DREAM3D filter
+subgroup name.
+
 JSON files are taken from [1].
 Documentation about the JSON files is available here [2].
 Test implementation in SimpleITK: [3]
@@ -26,6 +54,20 @@ import argparse
 import os
 import sys
 
+
+# The 'general' dictionary contains the expected keywords in JSON file at highest level.
+# This dictionary is used to verify that all the required keywords are given
+# in the JSON file.
+# This dictionary contains 3 main sections:
+# * processed: This section contains all the keywords that are used by this Python script
+# * ignored: This section contains the keywords that are not (currently) useful to generated
+#            the C++ DREAM3D filter code.
+# * not_implemented: This section contains the keywords that should be used by the Python
+#                    script but that are not handled yet.
+#
+# Each item in each section must contain a name, a type, and a boolean that specifies if
+# the item is required. Each item can also contain additional information such as if
+# this item has limitations.
 general={
          'name': 'general',
          'processed':
@@ -38,12 +80,12 @@ general={
                {'name':['tests'],'type':list,'required':False},
                {'name':['briefdescription'],'type':str,'required':False},
                {'name':['detaileddescription'],'type':str,'required':False},
-               {'name':['output_image_type'],'type':str,'required':False},  # 37
-               {'name':['output_pixel_type'],'type':str,'required':False},  # 60
-               {'name':['template_code_filename'], 'type':str, 'required':True},  # 281
-               {'name':['template_test_filename'], 'type':str, 'required':True}, # 280
-               {'name':['filter_type'],'type':str,'required':False},  # 102 occurences
-               {'name':['measurements'],'type':str,'required':False}  # 109
+               {'name':['output_image_type'],'type':str,'required':False},  # 37 occurences in JSON
+               {'name':['output_pixel_type'],'type':str,'required':False},  # 60 occurences in JSON
+               {'name':['template_code_filename'], 'type':str, 'required':True},  # 281 occurences in JSON
+               {'name':['template_test_filename'], 'type':str, 'required':True}, # 280 occurences in JSON
+               {'name':['filter_type'],'type':str,'required':False},  # 102 occurences in JSON
+               {'name':['measurements'],'type':str,'required':False}  # 109 occurences in JSON
              ],
         'ignored':
              [
@@ -56,22 +98,24 @@ general={
          'not_implemented':
              [
                {'name':['pixel_types'], 'type':str, 'required':True},  # 337 occurences in JSON
-               {'name':['vector_pixel_types_by_component'],'type':str,'required':False},  # 42
-               {'name':['no_procedure'],'type':str,'required':False},  # 31
-               {'name':['no_output_type'],'type':str,'required':False},  # 2
-               {'name':['constant_type'],'type':str,'required':False},  # 23
-               {'name':['pixel_types2'],'type':str,'required':False},  # 14
-               {'name':['vector_pixel_types_by_component2'],'type':str,'required':False},  # 1
-               {'name':['template_type'],'type':str,'required':False},  # 7
-               {'name':['no_return_image'],'type':str,'required':False},  # 8
-               {'name':['custom_type2'],'type':str,'required':False},  # 3
-               {'name':['custom_register'],'type':str,'required':False},  # 2
-               {'name':['long'],'type':int,'required':False},  # 32
-               {'name':['custom_set_input'],'type':str,'required':False}  # 24
+               {'name':['vector_pixel_types_by_component'],'type':str,'required':False},  # 42 occurences in JSON
+               {'name':['no_procedure'],'type':str,'required':False},  # 31 occurences in JSON
+               {'name':['no_output_type'],'type':str,'required':False},  # 2 occurences in JSON
+               {'name':['constant_type'],'type':str,'required':False},  # 23 occurences in JSON
+               {'name':['pixel_types2'],'type':str,'required':False},  # 14 occurences in JSON
+               {'name':['vector_pixel_types_by_component2'],'type':str,'required':False},  # 1 occurences in JSON
+               {'name':['template_type'],'type':str,'required':False},  # 7 occurences in JSON
+               {'name':['no_return_image'],'type':str,'required':False},  # 8 occurences in JSON
+               {'name':['custom_type2'],'type':str,'required':False},  # 3 occurences in JSON
+               {'name':['custom_register'],'type':str,'required':False},  # 2 occurences in JSON
+               {'name':['long'],'type':int,'required':False},  # 32 occurences in JSON
+               {'name':['custom_set_input'],'type':str,'required':False}  # 24 occurences in JSON
              ]
          
        }
 
+# 'members' describes each input required by the filter. This describes the type of
+# data, its name, and other information such as the default value for this variable.
 # 'member' structure is used both for 'members' data and 'measurements' data
 members={
         'name':'members',
@@ -81,12 +125,12 @@ members={
            {'name':['type'],'type':str,'required':False},
            {'name':['default'],'type':str,'required':True},
            {'name':['dim_vec'],'type':int,'required':False },  # 159 occurences in JSON
-           {'name':['itk_type'],'type':str,'required':False},  # 121
+           {'name':['itk_type'],'type':str,'required':False},  # 121 occurences in JSON
            {'name':['briefdescriptionSet'],'type':str,'required':False},
            {'name':['detaileddescriptionSet'],'type':str,'required':False},
            {'name':['detaileddescriptionGet'],'type':str,'required':False},  # For some filters, the description is only written in this field, not in the equivalent "Set" field
            {'name':['briefdescriptionGet'],'type':str,'required':False},  # For some filters, the description is only written in this field, not in the equivalent "Set" field
-           {'name':['custom_itk_cast'],'type':str,'required':False},  # 123 (including in inputs)
+           {'name':['custom_itk_cast'],'type':str,'required':False},  # 123 occurences in JSON (including in inputs)
            {'name':['ignore_setup'],'type':str,'required':False}, #  Not in the original JSON file. Adds this information when member should not be automatically added in the setup (e.g. if the template already initializes this member with a specific layout)
            {'name':['ignore_impl'],'type':str,'required':False} #  Not in the original JSON file. Adds this information when member should not be automatically added in the filter implementation (e.g. when the member is not used to initialize the filter, but another object).
          ],
@@ -100,12 +144,15 @@ members={
          'not_implemented':
          [
            {'name':['set_as_scalar']},  # 40; The parameter values will be set individually, not altogether using the same scalar value
-           {'name':['pixeltype'],'type':str,'required':False},  # 158
-           {'name':['point_vec'],'type':str,'required':False},  # 7
-           {'name':['enum'],'type':list,'required':False}  # 29
+           {'name':['pixeltype'],'type':str,'required':False},  # 158 occurences in JSON
+           {'name':['point_vec'],'type':str,'required':False},  # 7 occurences in JSON
+           {'name':['enum'],'type':list,'required':False}  # 29 occurences in JSON
          ]
       }
 
+
+# The 'DefaultMembers' dictionary contains items that are automatically added to the list of members
+# for certain templates.
 DefaultMembers={
                 'ImageFilter':[],
                 'KernelImageFilter':
@@ -115,6 +162,8 @@ DefaultMembers={
                 ]
                }
 
+# The 'inputs' dictionary contains the list of items that the filter requires as
+# well as their description (name, type)
 inputs={
         'name':'inputs',
         'processed':
@@ -128,10 +177,12 @@ inputs={
          [
            {'name':['no_size_check'],'type':str,'required':False},  # 3 occurences in JSON
            {'name':['custom_itk_cast'],'type':str,'required':False},  # 123 (including in members)
-           {'name':['optional'],'type':str,'required':False}  # 20
+           {'name':['optional'],'type':str,'required':False}  # 20 occurences in JSON
          ]
        }
 
+# 'tests' dictionary contains the description of the tests that will
+# be automatically implemented.
 tests={
        'name':'tests',
        'processed':
@@ -139,7 +190,7 @@ tests={
           {'name':['tag'],'type':str,'required':True},  # 498 occurences
           {'name':['md5hash'], 'type':str, 'required':False},  # 329 occurences
           {'name':['settings'], 'type':list,'required':False},  # 621 occurences
-          {'name':['inputs'],'type':list,'required':True,'limitations':{'len_maximum':1, 'len_minimum':1}},  # 816 (not limited to tests)
+          {'name':['inputs'],'type':list,'required':True,'limitations':{'len_maximum':1, 'len_minimum':1}},  # 816 occurences in JSON (not limited to tests)
           {'name':['tolerance'],'type':float,'required':False},  # 249 occurences
           {'name':['measurements_results'],'type':list,'required':False} # 65 occurences
         ],
@@ -158,6 +209,7 @@ tests={
         ]
 }
 
+# 'tests_settings' describes the settings used for the tests that are automatically implemented.
 # Used both for test settings and test measurements
 tests_settings={
        'name':'tests_settings',
@@ -183,6 +235,14 @@ tests_settings={
         'not_implemented':
         []
 }
+
+##########################################################################################################
+##########################################################################################################
+
+# Dictionaries used to convert data
+# * Conversion between ITK and DREAM3D
+# * Conversion from string to function calls
+# * Simplification for function calls
 
 Dream3DTypeToMacro={
   'double':{'include':'SIMPLib/FilterParameters/DoubleFilterParameter.h', 'macro':'SIMPL_NEW_DOUBLE_FP','component':'double','read':'readValue'},
@@ -288,15 +348,23 @@ ValueAndDimensionTypes={
 
 CheckEntry=['CheckIntegerEntry','CheckVectorEntry']
 
-
+##########################################################################################################
+##########################################################################################################
 #
-def ExtractDescritpion(data_json, fields, filter_description, verbose=False, not_implemented=False):
-    """ ExtractDescritpion
-    Data structure: input data
-    fields: global dictionary describing expected fields
-    filter_description: output dictionary containing filtered results
-    verbose: boolean to print extra information
-    not_implemented: boolean to ignore fields that are not implemented/used yet
+def ExtractDescription(data_json, fields, filter_description, verbose=False, not_implemented=False):
+    """ ExtractDescription
+    
+    Extract description of the filter based on the given dictionary (loaded from JSON) and
+    the expected structure ('fields').
+    
+    inputs:
+      Data structure: input data (dict)
+      fields: global dictionary describing expected fields (dict)
+      verbose: boolean to print extra information (bool)
+      not_implemented: boolean to ignore fields that are not implemented/used yet (bool)
+    outputs:
+      filter_description: output dictionary containing filtered results (dict)
+      return value: False if an error occurs (bool)
     """
     # Print which fields are being processed
     if verbose:
@@ -328,9 +396,28 @@ def ExtractDescritpion(data_json, fields, filter_description, verbose=False, not
     return True
 
 def GetDREAM3DFilterName(filter_name):
+    """ GetDREAM3DFilterName
+    
+    Simply create the DREAM3D filter name based on the ITK filter name.
+    
+    inputs:
+      filter_name: name of the filter (string)
+    outputs:
+      return value: DREAM3D filter name (string)
+    """
     return 'ITK'+filter_name.replace('Filter','')
 
 def FormatIncludes(include_files):
+    """FormatIncludes
+    
+    Converts a list of include files into the corresponding
+    C++ code that is inserted in the template files.
+    
+    inputs:
+      include_files: include file(s) (string or list)
+    outputs:
+      return value: C++ code to include C++ header files (string)
+    """
     if type(include_files) == list:  # There are multiple include files
       include_string=""
       clean_list=list(set(include_files))
@@ -341,9 +428,27 @@ def FormatIncludes(include_files):
     return include_string
 
 def GetDREAM3DITKInclude(filter_name):
+    """ GetDREAM3DITKInclude
+    
+    Return ITK header file name corresponding to the ITK filter name.
+    
+    outputs:
+      return value: ITK header file name (string)
+    """
     return 'itk'+filter_name+'.h'
 
 def CheckAutomaticallyGenerated(filename):
+    """ CheckAutomaticallyGenerated
+    
+    Verifies that the file has been generated automatically. The scrip
+    should only overwrite files that have been generated automatically,
+    not files that have been manually created.
+    
+    inputs:
+      filename: file name (string)
+    outputs:
+      return value: file was generated automatically (bool)
+    """
     try:
         with open(filename, 'r') as f:
             first_line = f.readline().rstrip('\n')
@@ -354,12 +459,45 @@ def CheckAutomaticallyGenerated(filename):
     return False
 
 def GetDREAM3DFilterFilePathNoExt(filter_name, directory):
+    """ GetDREAM3DFilterFilePathNoExt
+    
+    Returns the file path of the DREAM3D filter without the extension
+    of the file. This is useful to configure the template files.
+    
+    inputs:
+      filter_name: filter name (string)
+      directory: directory name (string)
+    outputs:
+      return value: File path without extension (string)
+    """
     return os.path.join(directory, GetDREAM3DFilterName(filter_name))
 
 def CheckFileExists(filename):
+    """CheckFileExists
+    
+    Checks both if the file exists on the system and if it is empty.
+    If the file is empty, return that it does not exist.
+    
+    inputs:
+      filename: file name (string)
+    outputs:
+      return value: File exists (bool)
+    """
     return (os.path.isfile(filename) and os.path.getsize(filename)>0)
 
 def FilterFilesAlreadyExist(filter_name, directory, overwrite):
+    """FilterFilesAlreadyExist
+    
+    Verifies is any of the files that we want to automatically generate
+    exist: checks for the header and cpp file as well as for the test file.
+    
+    inputs:
+      filter_name: filter name (string)
+      directory: directory name (string)
+      overwrite: overwrite file (bool)
+    outputs:
+      return value: Filter files can be written (bool)
+    """
     exists={}
     automatic={}
     for ext in ['.h','.cpp']:
@@ -388,12 +526,36 @@ def FilterFilesAlreadyExist(filter_name, directory, overwrite):
     return True
 
 def ReplaceVariablesInTemplate(lines,DREAM3DFilter):
+    """ReplaceVariablesInTemplate
+
+    Configure template files: Remplaces variables in un-initialized template
+    files with value that has been configured with the JSON information.   
+    
+    inputs:
+      lines: File content (list of string)
+      DREAM3DFilter: Generated C++ code (dictionary of string)
+    outputs:
+      return value: Configured C++ file (list of string)
+    """
     for ii in range(0,len(lines)):
         for key,val in DREAM3DFilter.iteritems():
             lines[ii]=lines[ii].replace('${'+key+'}', val)
     return lines
 
 def VerifyLimitations(fields, descriptions, verbose, islist=False):
+    """VerifyLimitations
+    
+    Certain items in the JSON files may have limitations: Verify that it
+    is supported before generating the C++ code.
+    
+    inputs:
+      fields: global dictionary describing expected fields (dict)
+      descriptions: output dictionary containing filtered results (dict)
+      verbose:
+      islist:
+    outputs:
+      return value: True if inside limitations (bool)
+    """
     # This is a list of list
     if islist:
         for description in descriptions:
@@ -431,6 +593,16 @@ def VerifyLimitations(fields, descriptions, verbose, islist=False):
     return True
 
 def FilterFields(fields, descriptions, isList=False):
+    """FilterFields
+    
+    Reads JSON dictionary and convert it to expected structure. If the input is a list
+    of list, call this function once for each item of the first list.
+    
+    input:
+      fields: dictionary describing the expected structure of the items of 'descriptions'
+      descriptions: list or list of list containing 
+      isList: boolean
+    """
     # If description is list of list
     if isList:
         for description in descriptions:
@@ -445,6 +617,15 @@ def FilterFields(fields, descriptions, isList=False):
                 descriptions[ii][key] = [x for x in val if filter_field not in x]
 
 def CheckTypeSupport(filter_members):
+    """CheckTypeSupport
+    
+    For each element of 'filter_members',
+    check that the type of the filter member is supported. The C++ code of
+    the filter cannot be generated if the type is not supported.
+    
+    input:
+      filter_members: list
+    """
     for filter_member in filter_members:  # Expected to be a list
         if (filter_member['type'],filter_member['dim_vec']) not in ITKToDream3DType:
             print("Type not supported: %s (vector: %d)"%(filter_member['type'],filter_member['dim_vec']))
@@ -453,6 +634,14 @@ def CheckTypeSupport(filter_members):
     return True
 
 def CheckITKTypeSupport(filter_members):
+    """CheckITKTypeSupport
+    
+    Checks that the 'itk_type' of all items is supported. If the type is not
+    supported, the C++ code of the filter cannot be generated.
+        
+    input:
+      filter_members: list
+    """
     for filter_member in filter_members:  # Expected to be a list
         if 'itk_type' in filter_member:
             if filter_member['dim_vec'] > 0 and filter_member['itk_type'] not in itkVectorTypes:
@@ -623,20 +812,41 @@ def GetOutputDirectory(directory):
 
 def ExtractDescriptionList(fields, description, filter_fields, verbose, not_implemented):
     """ ExtractDescriptionList
-    fields: description of the expected fields (gloabal variable)
-    description: list containing input to be read and filtered
-    filter_fields: output filtered dictionary
-    verbose: boolean to print extra information
-    not_implemented: boolean to ignore fields that are not implemented/used yet
+    
+    inputs:
+      fields: description of the expected fields (gloabal variable)
+      description: list containing input to be read and filtered
+      verbose: print extra information (bool)
+      not_implemented: ignore fields that are not implemented/used yet (bool)
+    outputs:
+      filter_fields: output filtered dictionary (dict)
+      return value: False if error occurs (bool)
     """
     for descr in description:
         filter_field={}
-        if not ExtractDescritpion(descr, fields, filter_field, verbose, not_implemented):
+        if not ExtractDescription(descr, fields, filter_field, verbose, not_implemented):
             return False
         filter_fields.append(filter_field)
     return True
 
 def GetDream3DTestName(filter_description, test):
+    """GetDream3DTestName
+    
+    Returns DREAM3D Test name based on the filter description and test description.
+    
+    inputs:
+      filter_description: 
+      test: 
+    outputs:
+      return value: Test name (string)
+    """
+    print "------------------------------"
+    print type(filter_description)
+    print filter_description
+    print type(test)
+    print test
+    print "------------------------------"
+    sys.exit(0)
     filterName=GetDREAM3DFilterName(filter_description['name'])
     testName=test['tag']
     return 'Test'+filterName+testName+'Test()'
@@ -775,14 +985,14 @@ def main(argv=None):
             prog=argv[0],
             description=__doc__
     )
-    parser.add_argument('-j', '--JSONDirectory', dest='json_directory', required=True, help="Directory containing JSON files")
-    parser.add_argument('-d', '--RootDirectory', dest='root_directory', required=True, help="Filter root directory")
+    parser.add_argument('-j', '--JSONDirectory', dest='json_directory', required=True, help="Directory containing JSON files (inside SimpleITK)")
+    parser.add_argument('-d', '--RootDirectory', dest='root_directory', required=True, help="Filter root directory (containing .git)")
     parser.add_argument('-v', '--Verbose', dest='verbose', action='store_true', help="Verbose")
     parser.add_argument('-vv', '--ExtraVerbose', dest='extra_verbose', action='store_true', help="Extra verbose")
-    parser.add_argument('-n', '--NotImplemented', dest='not_implemented', action='store_true', help="Hide errors due to not yet implemented")
+    parser.add_argument('-n', '--NotImplemented', dest='not_implemented', action='store_true', help="Hide errors due to keyword not yet being implemented")
     parser.add_argument('-o', '--Overwrite', dest='overwrite', action='store_true', help="Overwrite files previously generated automatically")
-    parser.add_argument('-b', '--DisableVerifications', dest='disable_verifications', action='store_true', help="Disable Verifications")
-    parser.add_argument('-I', '--ITK_SRC_DIR', dest='itk_dir', required=True, help="ITK source directory")
+    parser.add_argument('-b', '--DisableVerifications', dest='disable_verifications', action='store_true', help="Disable Verifications (this might result in errors)")
+    parser.add_argument('-I', '--ITK_SRC_DIR', dest='itk_dir', required=True, help="ITK source directory (used to find ITK filter's module names)")
     parser.set_defaults(verbose=False)
     options = parser.parse_args(argv[1:])
     documentation_directory = os.path.join(options.root_directory, 'Documentation/ITKImageProcessingFilters')
@@ -802,18 +1012,27 @@ def main(argv=None):
     all_json = [os.path.join(options.json_directory,f) for f in os.listdir(options.json_directory)\
                 if os.path.isfile(os.path.join(options.json_directory, f)) and os.path.splitext(f)[1] == '.json']
     filter_list=[]
+    # Processes each JSON file individually: one JSON file = one ITK filter = one DREAM.3D filter
     for current_json in all_json:
         print("Current JSON file: %s"%current_json)
         with open(current_json) as file_json:
             data_json = json.load(file_json)
         filter_description={}
-        if not ExtractDescritpion(data_json, general, filter_description, options.extra_verbose, options.not_implemented):
+        # Read input JSON.
+        # Checks content of dictionary with 'general' dictionary as reference.
+        # Output is written in 'filter_description'
+        if not ExtractDescription(data_json, general, filter_description, options.extra_verbose, options.not_implemented):
             continue
         # Does filter already exist and has it been generated automatically
+        # Skip generating filter if already exist and overwrite option not selected
         if not FilterFilesAlreadyExist(filter_description['name'], options.root_directory, options.overwrite):
             continue
         # Read JSON sub fields
         filter_inputs=[]
+        # 'inputs' subfields first.
+        # Read filter_description['inputs']
+        # Checks content of dictionary with 'inputs' as a reference.
+        # 'filter_inputs' is the output dictionary.
         if not ExtractDescriptionList(inputs, filter_description['inputs'],\
                                       filter_inputs, options.extra_verbose, options.not_implemented):
             continue
